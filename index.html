@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        margin: 0px;
+        background-color: orange;
+      }
+      #user-interface {
+        display: flex;
+        justify-content: space-around;
+        font-size: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Homework to work at ION Gilbert Zenner</h1>
+    <!--#userInterface-->
+    <div id="user-interface">
+      <!--#searchBars-->
+      <div id="searchBars">
+        <!-- 3 search bars to search posts, comments, names-->
+        <label for="searchPosts">Search posts:</label><br />
+        <input type="search" id="searchPosts" value="test" /><br />
+        <label for="searchComments">Search Comments:</label><br />
+        <input type="search" id="searchComments" /><br />
+        <label for="searchUserName">Search Name:</label><br />
+        <input type="search" id="searchUserName" /><br />
+      </div>
+
+      <!--the form to insert a new post-->
+      <div id="newPost">
+        <form method="post" id="submit-new-post-Form">
+          <label for="userId">Your UserId</label><br />
+          <input type="number" id="userId" name="userId" value="1" /><br />
+          <label for="userName">Your Username</label><br />
+          <input type="text" id="userName" /><br />
+          <label for="title-new-post">Title of new post:</label><br />
+          <!-- title and text predefined  for faster testing. -->
+          <input
+            type="text"
+            id="title-new-post"
+            name="title"
+            value="Title of Post entered by Gilbert Zenner"
+          /><br />
+          <label for="text-new-post">Text of new post:</label><br />
+          <textarea id="text-new-post" name="body">
+        Text of Post entered by Gilbert Zenner</textarea
+          ><br />
+          <input type="submit" value="Click to submit new post" /><br />
+        </form>
+      </div>
+      <!-- end of the form -->
+    </div>
+    <!-- end of #userinterface -->
+
+    <!-- the container which will show all posts, users, comments that match the search. Shows all posts at start of website-->
+    <div id="postsContainer"></div>
+
+    <!-- Js starts here-->
+    <script>
+      // these 3 variables will save the respective data received from the server.
+      let posts_content;
+      let users_content;
+      let comments_content;
+
+      // we are assigning constants to all the needed HTML elements by searching for the Id
+      const postsContainer = document.getElementById("postsContainer");
+      const displayPostsBtn = document.getElementById("display-posts");
+      const searchUserName = document.getElementById("searchUserName");
+      const searchPosts = document.getElementById("searchPosts");
+      const searchComments = document.getElementById("searchComments");
+      const submitNewPostForm = document.getElementById("submit-new-post-Form");
+      const userNameNewPost = document.getElementById("userName");
+      const userIdNewPost = document.getElementById("userId");
+
+      // this enters the Username into the username field whenever a userId is set/changed. more user-friendly
+      userIdNewPost.addEventListener("input", function () {
+        userNameNewPost.value =
+          users_content[parseInt(userIdNewPost.value)].username;
+      });
+
+      // this launches a fetching of comments fitting the input in the searchComments input anytime the content of the input changes.
+      searchComments.addEventListener("input", function () {
+        const searchTerm = searchComments.value;
+        postsContainer.innerHTML = "";
+
+        fetch(`https://gilbert.trials.iondev.lu/comments?q=${searchTerm}`)
+          .then((response) => {
+            return response.json();
+          })
+          .then((data) => {
+            comments_content = Object.values(data); // we save the comments data received from the server into this variable;
+
+            // we use a for loop to put the data of each post into its own post HTML element.
+            for (let i = 0; i < comments_content.length; i++) {
+              // we generate a paragraph for every piece of data
+              const comment = document.createElement("p");
+              const commentName = document.createElement("p");
+              const commentEmail = document.createElement("p");
+              const commentBody = document.createElement("p");
+
+              // the requested delete button
+              const deleteCommentBtn = document.createElement("button");
+              deleteCommentBtn.addEventListener("click", function () {
+                // this removes comments from the DOM
+                comment.remove();
+              });
+              deleteCommentBtn.textContent = "DELETE THIS comment";
+              comment.style.border = "black solid";
+
+              // we fill the HTML elements with the data
+              commentName.textContent = comments_content[i].name;
+              commentEmail.textContent = comments_content[i].email;
+              commentBody.textContent = comments_content[i].body;
+
+              // we append the elements to the overall comment HTML element
+              comment.appendChild(commentName);
+              comment.appendChild(commentEmail);
+              comment.appendChild(commentBody);
+              comment.appendChild(deleteCommentBtn);
+
+              // we append the completed comment to the postContainer
+              postsContainer.appendChild(comment);
+            }
+          });
+      });
+
+      // this launches a fetching of posts fitting the input in the searchComments input anytime the content of the input changes.
+      searchPosts.addEventListener("input", function () {
+        const searchTerm = searchPosts.value;
+        postsContainer.innerHTML = "";
+
+        fetch(`https://gilbert.trials.iondev.lu/posts?q=${searchTerm}`)
+          .then((response) => {
+            return response.json();
+          })
+          .then((data) => {
+            posts_content = Object.values(data); // we save the posts data received from the server into this variable;
+
+            // we use a for loop to put the data of each post into its own post HTML element.
+            for (let i = 0; i < posts_content.length; i++) {
+              // we generate a paragraph for every piece of data
+              const newPost = document.createElement("p");
+              const newPostId = document.createElement("p");
+              const newPostTitle = document.createElement("p");
+              const newPostText = document.createElement("p");
+              const newPostUsername = document.createElement("p");
+              const deletePostBtn = document.createElement("button");
+
+              // we use newPostId to store the Id for deleting the post later. Its better to hide the value so the user cannot change it.
+              newPostId.style.display = "none";
+              newPostId.textContent = posts_content[i].id;
+
+              // the requested function and button to delete a post.
+              deletePostBtn.addEventListener("click", function () {
+                newPost.remove(); // removes the post from the local DOM
+                console.log(parseInt(newPostId.textContent));
+
+                // this sends a request to the server to delete this posts. uses the stored Id value to tell the server which post to delete
+                fetch(
+                  `https://gilbert.trials.iondev.lu/posts/${parseInt(
+                    newPostId.textContent
+                  )}`,
+                  {
+                    method: "DELETE",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                  }
+                )
+                  .then((response) => {
+                    if (response.ok) {
+                      console.log("Entry deleted successfully");
+                    } else {
+                      console.error("Error deleting entry");
+                    }
+                  })
+                  .catch((error) => {
+                    console.error(error);
+                  });
+              });
+
+              // we add text to the button to tell user what button does
+              deletePostBtn.textContent = "DELETE THIS POST";
+              // a nice border to make it look fancy
+              newPost.style.border = "black solid";
+
+              // we fill the data into the HTML elements.
+              newPostUsername.textContent = users_content[i].username;
+              newPostTitle.textContent = posts_content[i].title;
+              newPostText.textContent = posts_content[i].body;
+              // we append the parts that make up the entire post
+              newPost.appendChild(newPostUsername);
+              newPost.appendChild(newPostTitle);
+              newPost.appendChild(newPostText);
+              newPost.appendChild(deletePostBtn);
+
+              // we append the completed post to the postsContainer
+              postsContainer.appendChild(newPost);
+            }
+          });
+      });
+
+      /////////
+
+      searchUserName.addEventListener("input", function () {
+        const searchTerm = searchUserName.value;
+        postsContainer.innerHTML = "";
+
+        fetch(`https://gilbert.trials.iondev.lu/users?q=${searchTerm}`)
+          .then((response) => {
+            return response.json();
+          })
+          .then((data) => {
+            users_content = Object.values(data);
+
+            for (let i = 0; i < users_content.length; i++) {
+              const User = document.createElement("p");
+              const UserFullName = document.createElement("p");
+              const UserName = document.createElement("p");
+              const UserEmail = document.createElement("p");
+              const deleteUserBtn = document.createElement("button");
+              deleteUserBtn.addEventListener("click", function () {
+                User.remove();
+              });
+              deleteUserBtn.textContent = "DELETE THIS User";
+              User.style.border = "black solid";
+
+              UserName.textContent = users_content[i].username;
+              UserFullName.textContent = users_content[i].name;
+              UserName.textContent = users_content[i].username;
+              UserEmail.textContent = users_content[i].email;
+              User.appendChild(UserName);
+              User.appendChild(UserFullName);
+              User.appendChild(UserEmail);
+              User.appendChild(deleteUserBtn);
+
+              postsContainer.appendChild(User);
+            }
+          });
+      });
+
+      // the JS for requested form to submit a new post
+      submitNewPostForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        // we save the content of the new post (title, text) into this object to send this data to the server
+        const data = {
+          userId: submitNewPostForm.elements.userId.value,
+          title: submitNewPostForm.elements.title.value,
+          body: submitNewPostForm.elements.body.value,
+        };
+
+        // we communicate with the server and add the post
+        fetch("https://gilbert.trials.iondev.lu/posts", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        })
+          .then((response) => {
+            return response.json();
+          })
+          .then((result) => {
+            console.log(result);
+          });
+      });
+
+      // fetches all users data at website start
+      fetch("https://gilbert.trials.iondev.lu/users")
+        .then((response) => {
+          return response.json();
+        })
+        .then((data) => {
+          users_content = Object.values(data);
+          userNameNewPost.value = users_content[userIdNewPost.value].username;
+        });
+
+      // fetches all comments data at website start
+      fetch("https://gilbert.trials.iondev.lu/comments")
+        .then((response) => {
+          return response.json();
+        })
+        .then((data) => {
+          comments_content = Object.values(data);
+        });
+
+      // fetches all posts data at website start
+      fetch("https://gilbert.trials.iondev.lu/posts")
+        .then((response) => {
+          return response.json();
+        })
+        .then((data) => {
+          // exactly same logic as above
+          posts_content = Object.values(data);
+          for (let i = 0; i < posts_content.length; i++) {
+            const newPost = document.createElement("p");
+            const newPostId = document.createElement("p");
+            const newPostTitle = document.createElement("p");
+            const newPostText = document.createElement("p");
+            const newPostUsername = document.createElement("p");
+            const deletePostBtn = document.createElement("button");
+            newPostId.style.display = "none";
+            newPostId.textContent = i + 1;
+            deletePostBtn.addEventListener("click", function () {
+              newPost.remove();
+              console.log(parseInt(newPostId.textContent));
+
+              fetch(
+                `https://gilbert.trials.iondev.lu/posts/${parseInt(
+                  newPostId.textContent
+                )}`,
+                {
+                  method: "DELETE",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                }
+              )
+                .then((response) => {
+                  if (response.ok) {
+                    console.log("Entry deleted successfully");
+                  } else {
+                    console.error("Error deleting entry");
+                  }
+                })
+                .catch((error) => {
+                  console.error(error);
+                });
+            });
+
+            deletePostBtn.textContent = "DELETE THIS POST";
+            newPost.style.border = "black solid";
+
+            console.log(posts_content[i].userId);
+            console.log(users_content[posts_content[i].userId].username);
+            newPostUsername.textContent =
+              users_content[posts_content[i].userId].username;
+            newPostTitle.textContent = posts_content[i].title;
+            newPostText.textContent = posts_content[i].body;
+            newPost.appendChild(newPostUsername);
+            newPost.appendChild(newPostTitle);
+            newPost.appendChild(newPostText);
+            newPost.appendChild(deletePostBtn);
+            newPost.appendChild(newPostId);
+
+            postsContainer.appendChild(newPost);
+          }
+        });
+    </script>
+  </body>
+</html>
